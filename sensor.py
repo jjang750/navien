@@ -19,8 +19,8 @@ from homeassistant.const import (CONF_NAME, CONF_MONITORED_CONDITIONS, TEMP_CELS
 from homeassistant.helpers.entity import Entity
 from homeassistant.util import Throttle
 
-token = 'a81c7152-87a0-4f2f-877b-19f4b20936f6'
-deviceId = 'c9fbd5c5-63ab-4e9c-9d7d-5c72b599a794'
+token = '-877b-19f4b20936f6'
+deviceId = '63ab-4e9c-9d7d-5c72b599a794'
 
 BOILER_STATUS = {
     'deviceAlias': '경동 나비엔 보일러',
