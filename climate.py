@@ -104,8 +104,8 @@ class SmartThingsApi:
             _LOGGER.debug(" Call to Navien Boiler API {} ".format(response))
 
             if response.status_code != 200:
-                print("error send command : {}".format(response.json()))
-                _LOGGER.error("error send command : {}".format(response.json()))
+                print("error send command : {}".format(response))
+                _LOGGER.error("error send command : {}".format(response))
                 return False
 
         except Exception as ex:
