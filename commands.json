@@ -1,0 +1,41 @@
+{
+  "token": "a81c7152-87a0-4f2f-877b-19f4b20XXXXX",
+  "deviceId": "c9fbd5c5-63ab-4e9c-9d7d-5c72b59XXXXX",
+  "switch":
+    {
+      "component": "main",
+      "capability": "switch",
+      "command": "on",
+      "arguments": []
+    },
+    "setCurrentSetpoint":{
+      "component": "main",
+      "capability": "voiceaddress44089.currenttemperature",
+      "command": "setCurrentSetpoint",
+      "arguments": [30]
+    },
+    "setThermostatMode":{
+      "component": "RoomTemperatureSetting",
+      "capability": "voiceaddress44089.thermostatMode",
+      "command": "setMode",
+      "arguments": ["away"]
+    },
+    "setThermostatSpaceHeatingSetpoint":{
+      "component": "RoomTemperatureSetting",
+      "capability": "voiceaddress44089.thermostatSpaceHeatingSetpoint",
+      "command": "setSpaceHeatingSetpoint",
+      "arguments": [30]
+    },
+    "setThermostatFloorHeatingSetpoint":{
+      "component": "RoomTemperatureSetting",
+      "capability": "voiceaddress44089.thermostatFloorHeatingSetpoint",
+      "command": "setFloorHeatingSetpoint",
+      "arguments": [30]
+    },
+    "setThermostatHotwaterSetpoint":{
+      "component": "HotwaterTemperatureSetting",
+      "capability": "voiceaddress44089.thermostatHotwaterSetpoint",
+      "command": "setHotwaterSetpoint",
+      "arguments": [30]
+    }
+}
