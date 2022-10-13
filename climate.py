@@ -39,7 +39,6 @@ MAX_TEMP = 45
 MIN_TEMP = 10
 HVAC_MODE_BATH = '목욕'
 STATE_HEAT = '난방'
-STATE_BATH = '목욕'
 STATE_ONDOL = '온돌'
 STATE_AWAY = '외출'
 STATE_OFF = '종료'
@@ -398,9 +397,9 @@ class Navien(ClimateEntity):
         if preset_mode == STATE_HEAT:
             self.device.indoor()
             BOILER_STATUS['mode'] = 'indoor'
-        elif preset_mode == STATE_BATH:
-            self.device.away()
-            BOILER_STATUS['mode'] = 'away'
+        # elif preset_mode == STATE_BATH:
+        #     self.device.away()
+        #     BOILER_STATUS['mode'] = 'away'
         elif preset_mode == STATE_ONDOL:
             self.device.ondol()
             BOILER_STATUS['mode'] = 'ondol'
