@@ -17,7 +17,7 @@
   - 기기 추가 시 나비엔 스마트톡 아이디와 패스워드가 필요합니다.
   
 4) SmartThings API 접근을 위한 엑세스 토큰 발급이 필요합니다.<br>
-  참조 : https://cafe.naver.com/koreassistant/10624
+  참조 : https://cafe.naver.com/koreassistant/592
   
 5) 나비엔 롬 콘트롤러와 연결 된 기기의 device id를 찾기 위해 SmartThings API 접속합니다.
   - URL : https://graph-ap02-apnortheast2.api.smartthings.com/location/list<br>
