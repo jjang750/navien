@@ -43,28 +43,23 @@ STATE_ONDOL = '온돌'
 STATE_AWAY = '외출'
 STATE_OFF = '종료'
 
-BOILER_STATUS = {
-    'deviceAlias': '경동 나비엔 보일러',
-    'Date': f"{datetime.datetime.now()}",
-    'mode': 'indoor',
-    'switch': 'on',
-    'currentTemperature': '0',
-    'spaceheatingSetpoint': '0',
-    'currentHotwaterTemperature': '0',
-    'hotwaterSetpoint': '0',
-    'floorheatingSetpoint': '0'
-}
+BOILER_STATUS = {}
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
+    global BOILER_STATUS
     """Set up a Navien."""
     scriptpath = os.path.dirname(__file__)
     with open(scriptpath + "/commands.json", "r") as f:
         data = json.load(f)
 
-    _LOGGER.debug("start navien_boiler :{0} {1} {2} ".format(config, discovery_info, data))
+    BOILER_STATUS = data['BOILER_STATUS']
+
+    _LOGGER.debug("start navien_boiler :{0} {1} {2} ".format(config, BOILER_STATUS, data))
 
     device = SmartThingsApi(data)
+    device.update()
+
     add_entities([Navien(device, hass)], True)
 
 
@@ -89,8 +84,7 @@ class SmartThingsApi:
 
         try:
 
-            if cmd == "switch" or cmd == "setThermostatMode":
-                self.data[cmd]['arguments'] = [args]
+            self.data[cmd]['arguments'] = [args]
 
             command = "{\"commands\": [" + json.dumps(self.data[cmd]) + "]}"
             print("command : " + command)
@@ -206,13 +200,14 @@ class SmartThingsApi:
                 _LOGGER.debug('C : type %s, %s', type(json_list), json_list)
                 print('C : type %s, %s', type(json_list), json_list)
 
-                for key in BOILER_STATUS.keys():
-                    for index, value in enumerate(json_list):
-                        # print(" index {0} value {1} ".format(index, value['Name']))
-                        if key == value['Name'] and value['Value'] != '0':
-                            _LOGGER.debug(" Value : {} ".format(value['Value']))
-                            BOILER_STATUS[key] = value['Value']
-                            break
+                # for key in BOILER_STATUS.keys():
+                key = 'currentTemperature'
+                for index, value in enumerate(json_list):
+                    # print(" index {0} value {1} ".format(index, value['Name']))
+                    if key == value['Name'] and value['Value'] != '0':
+                        _LOGGER.debug(" Value : {} ".format(value['Value']))
+                        BOILER_STATUS[key] = value['Value']
+                        break
 
                 self.result = BOILER_STATUS
                 _LOGGER.debug('JSON Response : type %s, %s', type(BOILER_STATUS), BOILER_STATUS)
@@ -317,11 +312,11 @@ class Navien(ClimateEntity):
         if operation_mode == 'indoor':
             return int(BOILER_STATUS['spaceheatingSetpoint'])
         elif operation_mode == 'away':
-            return int(BOILER_STATUS['currentHotwaterTemperature'])
+            return int(BOILER_STATUS['hotwaterSetpoint'])
         elif operation_mode == 'ondol':
             return int(BOILER_STATUS['floorheatingSetpoint'])
-        else:
-            return int(BOILER_STATUS['hotwaterSetpoint'])
+        # else:
+        #     return int(BOILER_STATUS['hotwaterSetpoint'])
 
 
     @property
@@ -362,7 +357,7 @@ class Navien(ClimateEntity):
         elif operation_mode == 'ondol':
             BOILER_STATUS['floorheatingSetpoint'] = temperature
             self.device.setThermostatFloorHeatingSetpoint(temperature)
-        self.device.setCurrentSetpoint(temperature)
+        # self.device.setCurrentSetpoint(temperature)
 
     @property
     def preset_modes(self):
@@ -424,6 +419,7 @@ class Navien(ClimateEntity):
             BOILER_STATUS['mode'] = 'OFF'
 
     def update(self):
+        _LOGGER.debug(" updated!! ")
         self.result = self.device.update()
 
 if __name__ == '__main__':

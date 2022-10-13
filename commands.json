@@ -1,6 +1,18 @@
 {
   "token": "a81c7152-87a0-4f2f-877b-19f4b20XXXXX",
   "deviceId": "c9fbd5c5-63ab-4e9c-9d7d-5c72b59XXXXX",
+  "BOILER_STATUS":
+  {
+    "deviceAlias": "경동 나비엔 보일러",
+    "Date": "",
+    "mode": "away",
+    "switch": "on",
+    "currentTemperature": "25",
+    "spaceheatingSetpoint": "25",
+    "currentHotwaterTemperature": "25",
+    "hotwaterSetpoint": "30",
+    "floorheatingSetpoint": "25"
+  },
   "switch":
     {
       "component": "main",
