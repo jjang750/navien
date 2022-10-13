@@ -50,7 +50,18 @@
   - "deviceId": "<b>c9fbd5c5-63ab-4e9c-9d7d-5c72b59XXXXX</b>"
   - "긁은 색으로 표시 된 부분만 수정해야 합니다."
 
-10) Home Assistant를 재시작 하면 적용됩니다.
+
+10) homeassistant/configuration.yaml 에 climate 를 추가합니다.
+
+climate:
+  - platform: navien_boiler
+    scan_interval: 360
+
+sensor:
+  - platform: navien_boiler
+    scan_interval: 360
+
+11) Home Assistant를 재시작 하면 적용됩니다.
 
 
 
