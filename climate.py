@@ -307,12 +307,25 @@ class Navien(ClimateEntity):
     @property
     def min_temp(self):
         """Return the minimum temperature."""
-        return MIN_TEMP
+        operation_mode = BOILER_STATUS['mode']
+        if operation_mode == 'indoor':
+            return 10
+        elif operation_mode == 'away':
+            return 30
+        elif operation_mode == 'ondol':
+            return 30
+
 
     @property
     def max_temp(self):
         """Return the maximum temperature."""
-        return MAX_TEMP
+        operation_mode = BOILER_STATUS['mode']
+        if operation_mode == 'indoor':
+            return 40
+        elif operation_mode == 'away':
+            return 60
+        elif operation_mode == 'ondol':
+            return 65
 
     @property
     def is_on(self):
@@ -433,7 +446,7 @@ class Navien(ClimateEntity):
         if hvac_mode == HVAC_MODE_HEAT:
             self.device.switch_on()
             BOILER_STATUS['switch'] = 'on'
-            BOILER_STATUS['mode'] = 'indoor'
+            BOILER_STATUS['mode'] = 'away'
         elif hvac_mode == HVAC_MODE_OFF:
             self.device.switch_off()
             BOILER_STATUS['mode'] = 'OFF'
