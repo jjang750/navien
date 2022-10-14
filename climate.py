@@ -89,12 +89,14 @@ class SmartThingsApi:
         print("send : {0}  {1}  {2}".format(cmd, args, self.data))
         _LOGGER.debug("send : {0}  {1}  {2}".format(cmd, args, self.data))
 
-        if cmd is None or args is None or self.data is None:
+        if cmd is None or self.data is None: # or args is None
             return False
 
         try:
-
-            self.data[cmd]['arguments'] = [args]
+            if cmd == "switch" and args == "on":
+                self.data[cmd]['arguments'] = []
+            else:
+                self.data[cmd]['arguments'] = [args]
 
             command = "{\"commands\": [" + json.dumps(self.data[cmd]) + "]}"
             print("command : " + command)
@@ -121,14 +123,14 @@ class SmartThingsApi:
     def switch_on(self) -> None:
         print("switch_on : ")
         _LOGGER.debug("switch_on : ")
-
-        self.send("switch","")
+        BOILER_STATUS['switch'] = "on"
+        self.send("switch", 'on')
 
     def switch_off(self) -> None:
         print("switch_off : ")
         _LOGGER.debug("switch_off : ")
-
-        self.setThermostatMode('OFF')
+        # self.send("switch", 'off')
+        self.setThermostatMode("OFF")
 
     def setCurrentSetpoint(self, temperature) -> None:
         print("setCurrentSetpoint :{}".format(temperature))
