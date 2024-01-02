@@ -185,7 +185,7 @@ class SmartThingsApi:
     def update(self):
         """Update function for updating api information."""
         try:
-            SMARTTHINGS_API_URL = 'https://graph-ap02-apnortheast2.api.smartthings.com/device/{0}/events'.format(self.deviceId)
+            SMARTTHINGS_API_URL = 'https://api.smartthings.com/v1/devices/{0}/events'.format(self.deviceId)
 
             response = requests.get(SMARTTHINGS_API_URL, timeout=10, headers=self.headers)
 
