@@ -4,22 +4,12 @@ Support for Navien Component.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/Navien/
 """
-import asyncio
-import datetime
 import json
-import hashlib
 import logging
 import os
+import dateutil.parser
+import requests
 
-import aiofiles
-import httpx
-import requests
-import voluptuous as vol
-import requests
-from bs4 import BeautifulSoup
-import re
-import codecs
-from datetime import timedelta
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.climate import PLATFORM_SCHEMA, ClimateEntity
 from homeassistant.components.climate.const import (
@@ -56,6 +46,8 @@ BOILER_STATUS = {
   }
 
 IS_BOOTED = False
+UPDATE_TEMPERATURE_ONLY = False # True: 현재온도만 업데이트 / False: 전체 데이터 업데이트 - 기존 코드에서 현재온도만 업데이트하는 방식이었으나, Preset 변경 시 설정 온도가 변경되지 않음. False로 사용 권고
+
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
@@ -185,49 +177,37 @@ class SmartThingsApi:
     def update(self):
         """Update function for updating api information."""
         try:
-            SMARTTHINGS_API_URL = 'https://api.smartthings.com/v1/devices/{0}/events'.format(self.deviceId)
+            SMARTTHINGS_API_URL = f'https://api.smartthings.com/v1/devices/{self.deviceId}/status'
 
             response = requests.get(SMARTTHINGS_API_URL, timeout=10, headers=self.headers)
 
             if response.status_code == 200:
 
-                soup = BeautifulSoup(response.text, 'html.parser')
-                event_table = soup.find_all('td')
+                data = response.json()
 
-                title = ['Date', 'Source', 'Type', 'Name', 'Value', 'User', 'Displayed Text']
-                json_list = []
-                appendString = dict()
+                # 최신 timestamp를 추적하기 위한 변수
+                latest_timestamp = None
 
-                index = 0
-                for tr in event_table:
-                    cleantext = re.sub(re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});'), '',
-                                       tr.text).strip()
-                    appendString[title[index]] = cleantext.split('\n')[0]
-                    index = index + 1
-                    if index % len(title) == 0:
-                        index = 0
-                        json_list.append(appendString)
-                        appendString = dict()
+                # JSON 데이터를 순회하며 BOILER_STATUS 업데이트
+                for _, attributes in data['components'].items():
+                    for _, values in attributes.items():
+                        for key, value in values.items():
+                            # BOILER_STATUS의 키와 일치하는 경우
+                            if key in BOILER_STATUS:
+                                _LOGGER.debug(f"Key: {key}, Value : {value['value']}")
+                                if UPDATE_TEMPERATURE_ONLY is False or IS_BOOTED is False:
+                                    BOILER_STATUS[key] = str(value['value'])
+                                elif key == 'currentTemperature' and value['value'] != 0:
+                                        _LOGGER.debug(f"Key: {key}, Value : {value['value']}")
 
-                _LOGGER.debug('C : type %s, %s', type(json_list), json_list)
-                print('C : type %s, %s', type(json_list), json_list)
+                            # 최신 timestamp 추적
+                            if 'timestamp' in value:
+                                timestamp = dateutil.parser.isoparse(value['timestamp'])
+                                if latest_timestamp is None or timestamp > latest_timestamp:
+                                    latest_timestamp = timestamp
 
-                # 부팅 시에 전체 상태를 업데이트
-                if IS_BOOTED is False:
-                    for key in BOILER_STATUS.keys():
-                        for index, value in enumerate(json_list):
-                            if key == value['Name'] and value['Value'] != '0':
-                                _LOGGER.debug(" Value : {} ".format(value['Value']))
-                                BOILER_STATUS[key] = value['Value']
-                                break
-
-                else:
-                    key = 'currentTemperature'
-                    for index, value in enumerate(json_list):
-                        if key == value['Name'] and value['Value'] != '0':
-                            _LOGGER.debug(" Value : {} ".format(value['Value']))
-                            BOILER_STATUS[key] = value['Value']
-                            break
+                # 최신 timestamp 업데이트
+                BOILER_STATUS['Date'] = latest_timestamp.isoformat() if latest_timestamp else ""
 
                 self.result = BOILER_STATUS
                 _LOGGER.debug('JSON Response : type %s, %s', type(BOILER_STATUS), BOILER_STATUS)
@@ -379,7 +359,7 @@ class Navien(ClimateEntity):
         if temperature is None:
             return None
 
-        # todo 난방 모드에 따른 온도 변경
+        # 난방 모드에 따른 온도 변경
         operation_mode = BOILER_STATUS['mode']
         if operation_mode == 'indoor':
             BOILER_STATUS['spaceheatingSetpoint'] = temperature

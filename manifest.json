@@ -1,10 +1,10 @@
 {
- "domain":"navien_boiler",
- "name":"경동 나비엔 보일러",
- "version":"0.1.0",
- "documentation":"",
- "dependencies":[],
- "codeowners":["@jjang750"],
- "requirements":[],
- "iot_class":"cloud_polling"
+    "domain": "navien_boiler",
+    "name": "경동 나비엔 보일러",
+    "version": "0.1.0",
+    "documentation": "",
+    "dependencies": [],
+    "codeowners": ["@jjang750"],
+    "requirements": [],
+    "iot_class": "cloud_polling"
 }
