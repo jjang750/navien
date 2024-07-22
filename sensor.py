@@ -68,41 +68,34 @@ class SmartThingsApi:
     def update(self):
         """Update function for updating api information."""
         try:
-            SMARTTHINGS_API_URL = 'https://api.smartthings.com/v1/devices/{0}/events'.format(self.deviceId)
+            SMARTTHINGS_API_URL = f'https://api.smartthings.com/v1/devices/{self.deviceId}/status'
 
             response = requests.get(SMARTTHINGS_API_URL, timeout=10, headers=self.headers)
 
             if response.status_code == 200:
 
-                soup = BeautifulSoup(response.text, 'html.parser')
-                event_table = soup.find_all('td')
+                response_json = response.json()
 
-                title = ['Date', 'Source', 'Type', 'Name', 'Value', 'User', 'Displayed Text']
-                json_list = []
-                appendString = dict()
+                BOILER_STATUS['switch'] = response_json['components']['main'][
+                    'switch']['switch']['value']
 
-                index = 0
-                for tr in event_table:
-                    cleantext = re.sub(re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});'), '',
-                                       tr.text).strip()
-                    appendString[title[index]] = cleantext.split('\n')[0]
-                    index = index + 1
-                    if index % len(title) == 0:
-                        index = 0
-                        json_list.append(appendString)
-                        appendString = dict()
+                BOILER_STATUS['currentTemperature'] = response_json['components']['main'][
+                    'voiceaddress44089.currenttemperature']['currentTemperature']['value']
 
-                _LOGGER.debug('C : type %s, %s', type(json_list), json_list)
-                print('C : type %s, %s', type(json_list), json_list)
+                BOILER_STATUS['currentHotwaterTemperature'] = response_json['components']['HotwaterTemperatureSetting'][
+                    'voiceaddress44089.currenthotwatertemperature']['currentHotwaterTemperature']['value']
 
-                # for key in BOILER_STATUS.keys():
-                _LOGGER.debug(" key {0} ".format(self._key))
-                for index, value in enumerate(json_list):
-                    # print(" index {0} value {1} ".format(index, value['Name']))
-                    if self._key == value['Name'] and value['Value'] != '0':
-                        _LOGGER.debug(" Value : {} ".format(value['Value']))
-                        BOILER_STATUS[self._key] = value['Value']
-                        break
+                BOILER_STATUS['hotwaterSetpoint'] = response_json['components']['HotwaterTemperatureSetting'][
+                    'voiceaddress44089.thermostatHotwaterSetpoint']['hotwaterSetpoint']['value']
+
+                BOILER_STATUS['spaceheatingSetpoint'] = response_json['components']['RoomTemperatureSetting'][
+                    'voiceaddress44089.thermostatSpaceHeatingSetpoint']['spaceheatingSetpoint']['value']
+
+                BOILER_STATUS['floorheatingSetpoint'] = response_json['components']['RoomTemperatureSetting'][
+                    'voiceaddress44089.thermostatFloorHeatingSetpoint']['floorheatingSetpoint']['value']
+
+                BOILER_STATUS['mode'] = response_json['components']['RoomTemperatureSetting'][
+                    'voiceaddress44089.thermostatMode']['mode']['value']
 
                 self.result = BOILER_STATUS
 
@@ -214,6 +207,7 @@ class Sensor(SensorEntity):
             return 'timestamp'
         else:
             return 'temperature'
+
 
 if __name__ == '__main__':
     """example_integration sensor platform setup"""
