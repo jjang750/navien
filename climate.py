@@ -7,18 +7,14 @@ https://home-assistant.io/components/Navien/
 import json
 import logging
 import os
-import dateutil.parser
-import requests
 
-import homeassistant.helpers.config_validation as cv
-from homeassistant.components.climate import PLATFORM_SCHEMA, ClimateEntity
+import requests
+from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
-    HVAC_MODE_HEAT, HVAC_MODE_OFF, HVAC_MODE_DRY, SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_PRESET_MODE, SUPPORT_TARGET_TEMPERATURE_RANGE, HVAC_MODES)
+    HVACMode, ClimateEntityFeature
+)
 from homeassistant.const import (
-    TEMP_CELSIUS, ATTR_TEMPERATURE, CONF_TOKEN, CONF_DEVICE_ID)
-from homeassistant.exceptions import PlatformNotReady
-from homeassistant.util import Throttle
+    UnitOfTemperature, ATTR_TEMPERATURE)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,8 +42,6 @@ BOILER_STATUS = {
   }
 
 IS_BOOTED = False
-UPDATE_TEMPERATURE_ONLY = False # True: 현재온도만 업데이트 / False: 전체 데이터 업데이트 - 기존 코드에서 현재온도만 업데이트하는 방식이었으나, Preset 변경 시 설정 온도가 변경되지 않음. False로 사용 권고
-
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
@@ -183,35 +177,32 @@ class SmartThingsApi:
 
             if response.status_code == 200:
 
-                data = response.json()
+                response_json = response.json()
 
-                # 최신 timestamp를 추적하기 위한 변수
-                latest_timestamp = None
+                BOILER_STATUS['switch'] = response_json['components']['main'][
+                    'switch']['switch']['value']
 
-                # JSON 데이터를 순회하며 BOILER_STATUS 업데이트
-                for _, attributes in data['components'].items():
-                    for _, values in attributes.items():
-                        for key, value in values.items():
-                            # BOILER_STATUS의 키와 일치하는 경우
-                            if key in BOILER_STATUS:
-                                _LOGGER.debug(f"Key: {key}, Value : {value['value']}")
-                                if UPDATE_TEMPERATURE_ONLY is False or IS_BOOTED is False:
-                                    BOILER_STATUS[key] = str(value['value'])
-                                elif key == 'currentTemperature' and value['value'] != 0:
-                                        _LOGGER.debug(f"Key: {key}, Value : {value['value']}")
+                BOILER_STATUS['currentTemperature'] = response_json['components']['main'][
+                    'voiceaddress44089.currenttemperature']['currentTemperature']['value']
 
-                            # 최신 timestamp 추적
-                            if 'timestamp' in value:
-                                timestamp = dateutil.parser.isoparse(value['timestamp'])
-                                if latest_timestamp is None or timestamp > latest_timestamp:
-                                    latest_timestamp = timestamp
+                BOILER_STATUS['currentHotwaterTemperature'] = response_json['components']['HotwaterTemperatureSetting'][
+                    'voiceaddress44089.currenthotwatertemperature']['currentHotwaterTemperature']['value']
 
-                # 최신 timestamp 업데이트
-                BOILER_STATUS['Date'] = latest_timestamp.isoformat() if latest_timestamp else ""
+                BOILER_STATUS['hotwaterSetpoint'] = response_json['components']['HotwaterTemperatureSetting'][
+                    'voiceaddress44089.thermostatHotwaterSetpoint']['hotwaterSetpoint']['value']
+
+                BOILER_STATUS['spaceheatingSetpoint'] = response_json['components']['RoomTemperatureSetting'][
+                    'voiceaddress44089.thermostatSpaceHeatingSetpoint']['spaceheatingSetpoint']['value']
+
+                BOILER_STATUS['floorheatingSetpoint'] = response_json['components']['RoomTemperatureSetting'][
+                    'voiceaddress44089.thermostatFloorHeatingSetpoint']['floorheatingSetpoint']['value']
+
+                BOILER_STATUS['mode'] = response_json['components']['RoomTemperatureSetting'][
+                    'voiceaddress44089.thermostatMode']['mode']['value']
 
                 self.result = BOILER_STATUS
-                _LOGGER.debug('JSON Response : type %s, %s', type(BOILER_STATUS), BOILER_STATUS)
-                print('JSON Response: type %s, %s', type(BOILER_STATUS), BOILER_STATUS)
+
+                print('JSON Response: type %s, %s', type(self.result), self.result)
 
             else:
                 _LOGGER.debug(f'Error Code: {response.status_code}')
@@ -264,9 +255,9 @@ class Navien(ClimateEntity):
         """Return the list of supported features."""
         features = 0
         if self.is_on:
-            features |= SUPPORT_PRESET_MODE # 프리셋 모드
+            features |= ClimateEntityFeature.PRESET_MODE # 프리셋 모드
         if BOILER_STATUS['mode'] != 'OFF':
-            features |= SUPPORT_TARGET_TEMPERATURE # 온도 조절 모드로 되어 있지 않으면 un support set_temperature 오류 발생
+            features |= ClimateEntityFeature.TARGET_TEMPERATURE_RANGE # 온도 조절 모드로 되어 있지 않으면 un support set_temperature 오류 발생
         return features
 
     @property
@@ -277,7 +268,7 @@ class Navien(ClimateEntity):
     @property
     def temperature_unit(self):
         """Return the unit of measurement which this thermostat uses."""
-        return TEMP_CELSIUS
+        return UnitOfTemperature.CELSIUS
 
     @property
     def target_temperature_step(self):
@@ -285,7 +276,7 @@ class Navien(ClimateEntity):
         return 1
 
     @property
-    def min_temp(self):
+    def target_temperature_low(self):
         """Return the minimum temperature."""
         operation_mode = BOILER_STATUS['mode']
         if operation_mode == 'indoor':
@@ -297,7 +288,7 @@ class Navien(ClimateEntity):
 
 
     @property
-    def max_temp(self):
+    def target_temperature_high(self):
         """Return the maximum temperature."""
         operation_mode = BOILER_STATUS['mode']
         if operation_mode == 'indoor':
@@ -338,15 +329,15 @@ class Navien(ClimateEntity):
         Need to be one of HVAC_MODE_*.
         """
         if self.is_on:
-            return HVAC_MODE_HEAT
-        return HVAC_MODE_OFF
+            return HVACMode.HEAT
+        return HVACMode.OFF
 
     @property
     def hvac_modes(self):
         """Return the list of available hvac operation modes.
         Need to be a subset of HVAC_MODES.
         """
-        return [HVAC_MODE_OFF, HVAC_MODE_HEAT]
+        return [HVACMode.OFF, HVACMode.HEAT]
 
     def set_temperature(self, **kwargs):
         """Set new target temperature."""
@@ -423,17 +414,18 @@ class Navien(ClimateEntity):
     def set_hvac_mode(self, hvac_mode):
         _LOGGER.debug("hvac_mode >>>> " + hvac_mode)
         """Set new target hvac mode."""
-        if hvac_mode == HVAC_MODE_HEAT:
+        if hvac_mode == HVACMode.HEAT:
             self.device.switch_on()
             BOILER_STATUS['switch'] = 'on'
             BOILER_STATUS['mode'] = 'away'
-        elif hvac_mode == HVAC_MODE_OFF:
+        elif hvac_mode == HVACMode.OFF:
             self.device.switch_off()
             BOILER_STATUS['mode'] = 'OFF'
 
     def update(self):
         _LOGGER.debug(" updated!! ")
         self.result = self.device.update()
+
 
 if __name__ == '__main__':
     """example_integration sensor 
