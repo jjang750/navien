@@ -4,17 +4,31 @@ Support for Navien Component.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/Navien/
 """
+import asyncio
+import datetime
 import json
+import hashlib
 import logging
 import os
 
+import aiofiles
+import httpx
 import requests
-from homeassistant.components.climate import ClimateEntity
+import voluptuous as vol
+import requests
+from bs4 import BeautifulSoup
+import re
+import codecs
+from datetime import timedelta
+import homeassistant.helpers.config_validation as cv
+from homeassistant.components.climate import PLATFORM_SCHEMA, ClimateEntity
 from homeassistant.components.climate.const import (
-    HVACMode, ClimateEntityFeature
+     HVACMode, ClimateEntityFeature
 )
 from homeassistant.const import (
-    UnitOfTemperature, ATTR_TEMPERATURE)
+    UnitOfTemperature, ATTR_TEMPERATURE, CONF_TOKEN, CONF_DEVICE_ID)
+from homeassistant.exceptions import PlatformNotReady
+from homeassistant.util import Throttle
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -421,6 +435,44 @@ class Navien(ClimateEntity):
         elif hvac_mode == HVACMode.OFF:
             self.device.switch_off()
             BOILER_STATUS['mode'] = 'OFF'
+
+    @property
+    def min_temp(self):
+        """Return the minimum temperature."""
+        operation_mode = BOILER_STATUS['mode']
+        if operation_mode == 'indoor':
+            return 10
+        elif operation_mode == 'away':
+            return 30
+        elif operation_mode == 'ondol':
+            return 30
+
+
+    @property
+    def max_temp(self):
+        """Return the maximum temperature."""
+        operation_mode = BOILER_STATUS['mode']
+        if operation_mode == 'indoor':
+            return 40
+        elif operation_mode == 'away':
+            return 60
+        elif operation_mode == 'ondol':
+            return 65
+
+    def turn_on(self):
+        """Turn the entity on."""
+        self.device.switch_on()
+
+    def turn_off(self):
+        """Turn the entity off."""
+        self.device.switch_off()
+
+    def toggle(self):
+        """Toggle the entity."""
+        if self.is_on:
+            self.turn_off()
+        else:
+            self.turn_on()
 
     def update(self):
         _LOGGER.debug(" updated!! ")
